@@ -23,6 +23,10 @@ learn-js.org is still under construction - If you wish to contribute tutorials, 
 - [[Callbacks]]
 - [[Arrow Functions]]
 
+### The DOM (Document Object Model)
+
+- [[Introduction To DOM]]
+
 ### Advanced tutorials
 
 - [[Object Oriented JavaScript]]

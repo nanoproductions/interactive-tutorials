@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import constants
+from ideone import Ideone
 import json
 import re
 import markdown
@@ -15,10 +17,6 @@ if sys.version_info.major < 3:
     reload(sys)
 sys.setdefaultencoding('utf8')
 
-from ideone import Ideone
-
-import constants
-
 
 courses = json.load(open("courses.json"))
 
@@ -26,7 +24,8 @@ courses = json.load(open("courses.json"))
 app = Flask(__name__)
 app.secret_key = constants.SECRET_KEY
 
-sections = re.compile(r"Tutorial\n[=\-]+\n+(.*)\n*Tutorial Code\n[=\-]+\n+(.*)\n*Expected Output\n[=\-]+\n+(.*)\n*Solution\n[=\-]+\n*(.*)\n*", re.MULTILINE | re.DOTALL)
+sections = re.compile(
+    r"Tutorial\n[=\-]+\n+(.*)\n*Tutorial Code\n[=\-]+\n+(.*)\n*Expected Output\n[=\-]+\n+(.*)\n*Solution\n[=\-]+\n*(.*)\n*", re.MULTILINE | re.DOTALL)
 WIKI_WORD_PATTERN = re.compile('\[\[([^]|]+\|)?([^]]+)\]\]')
 
 current_domain = constants.LEARNPYTHON_DOMAIN
@@ -43,7 +42,8 @@ if __name__ == '__main__':
         choices=constants.DOMAIN_DATA.keys()
     )
 
-    parser.add_argument("-p", "--port", help="port to listen to", default=5000, type=int)
+    parser.add_argument(
+        "-p", "--port", help="port to listen to", default=5000, type=int)
 
     args = parser.parse_args()
     current_domain = args.domain
@@ -70,18 +70,19 @@ def run_code(code, language_id):
         constants.IDEONE_PASSWORD,
         api_url='http://ronreiter.compilers.sphere-engine.com/api/1/service.wsdl')
 
-    code = ideone_api.create_submission(code, language_id=language_id, std_input="")["link"]
+    code = ideone_api.create_submission(
+        code, language_id=language_id, std_input="")["link"]
     result = None
 
     while True:
         time.sleep(1)
         result = ideone_api.submission_details(code)
-        if result["status"] in [1,3]:
+        if result["status"] in [1, 3]:
             continue
 
         break
 
-    data = { "code" : code }
+    data = {"code": code}
     if result["stderr"] or result["cmpinfo"]:
         data["output"] = "exception"
         if result["cmpinfo"]:
@@ -123,7 +124,8 @@ def _wikify_one(language, pat):
 
 
 def wikify(text, language):
-    text, count = WIKI_WORD_PATTERN.subn(functools.partial(_wikify_one, language), text)
+    text, count = WIKI_WORD_PATTERN.subn(
+        functools.partial(_wikify_one, language), text)
     return markdown.markdown(text.decode("utf-8")).strip()
 
 
@@ -136,7 +138,8 @@ def untab(text):
 
 
 def init_tutorials():
-    contributing_tutorials = wikify(open(os.path.join(os.path.dirname(__file__), "tutorials", "Contributing Tutorials.md")).read(), "en")
+    contributing_tutorials = wikify(open(os.path.join(os.path.dirname(
+        __file__), "tutorials", "Contributing Tutorials.md")).read(), "en")
 
     for domain in os.listdir(os.path.join(os.path.dirname(__file__), "tutorials")):
         if domain.endswith(".md"):
@@ -148,20 +151,22 @@ def init_tutorials():
             continue
 
         if domain not in constants.DOMAIN_DATA:
-            logging.warn("skipping domain %s beacause no domain data exists" % domain)
+            logging.warn(
+                "skipping domain %s beacause no domain data exists" % domain)
             continue
 
         for language in os.listdir(os.path.join(os.path.dirname(__file__), "tutorials", domain)):
             tutorial_data[domain][language] = {}
 
-            tutorials_path = os.path.join(os.path.dirname(__file__), "tutorials", domain, language)
+            tutorials_path = os.path.join(os.path.dirname(
+                __file__), "tutorials", domain, language)
             if not os.path.isdir(tutorials_path):
                 continue
 
             tutorials = os.listdir(tutorials_path)
 
             # place the index file first
-            tutorials.remove("Welcome.md")
+            # tutorials.remove("Welcome.md")
             tutorials = ["Welcome.md"] + tutorials
             for tutorial_file in tutorials:
                 if not tutorial_file.endswith(".md"):
@@ -176,14 +181,18 @@ def init_tutorials():
                 tutorial_dict = tutorial_data[domain][language][tutorial]
 
                 try:
-                    tutorial_dict["text"] = open(os.path.join(os.path.dirname(__file__), "tutorials", domain, language, tutorial_file)).read().replace("\r\n", "\n")
+                    tutorial_dict["text"] = open(os.path.join(os.path.dirname(
+                        __file__), "tutorials", domain, language, tutorial_file)).read().replace("\r\n", "\n")
                 except Exception, e:
                     tutorial_dict["text"] = "There was an error reading the tutorial. Exception: %s" % e.message
 
                 # create links by looking at all lines that are not code lines
-                stripped_text = "\n".join([x for x in tutorial_dict["text"].split("\n") if not x.startswith("    ")])
-                links = [x[0].strip("|") if x[0] else x[1] for x in WIKI_WORD_PATTERN.findall(stripped_text)]
-                tutorial_dict["links"] = [(x, pageurl(x, language)) for x in links]
+                stripped_text = "\n".join(
+                    [x for x in tutorial_dict["text"].split("\n") if not x.startswith("    ")])
+                links = [x[0].strip("|") if x[0] else x[1]
+                         for x in WIKI_WORD_PATTERN.findall(stripped_text)]
+                tutorial_dict["links"] = [
+                    (x, pageurl(x, language)) for x in links]
 
                 tutorial_sections = sections.findall(tutorial_dict["text"])
                 if tutorial_sections:
@@ -196,31 +205,36 @@ def init_tutorials():
                     tutorial_dict["is_tutorial"] = True
                 else:
                     tutorial_dict["page_title"] = ""
-                    tutorial_dict["text"] = wikify(tutorial_dict["text"], language)
+                    tutorial_dict["text"] = wikify(
+                        tutorial_dict["text"], language)
                     tutorial_dict["code"] = constants.DOMAIN_DATA[domain]["default_code"]
                     tutorial_dict["is_tutorial"] = False
 
                 for link in links:
                     if not link in tutorial_data[domain][language]:
                         tutorial_data[domain][language][link] = {
-                            "page_title" : link.decode("utf8"),
+                            "page_title": link.decode("utf8"),
                             "text": contributing_tutorials,
                             "code": ""
                         }
 
                     if not "back_chapter" in tutorial_data[domain][language][link]:
-                        tutorial_data[domain][language][link]["back_chapter"] = tutorial.decode("utf-8").replace(" ", "_")
+                        tutorial_data[domain][language][link]["back_chapter"] = tutorial.decode(
+                            "utf-8").replace(" ", "_")
                     elif not link.startswith("http"):
-                        logging.info("Warning! duplicate links to tutorial %s from tutorial %s/%s", link, language, tutorial)
+                        logging.info(
+                            "Warning! duplicate links to tutorial %s from tutorial %s/%s", link, language, tutorial)
 
                     num_links = len(links)
                     page_index = links.index(link)
                     if page_index > 0:
                         if not "previous_chapter" in tutorial_data[domain][language][link]:
-                            tutorial_data[domain][language][link]["previous_chapter"] = links[page_index - 1].decode("utf-8").replace(" ", "_")
+                            tutorial_data[domain][language][link]["previous_chapter"] = links[page_index - 1].decode(
+                                "utf-8").replace(" ", "_")
                     if page_index < (num_links - 1):
                         if not "next_chapter" in tutorial_data[domain][language][link]:
-                            tutorial_data[domain][language][link]["next_chapter"] = links[page_index + 1].decode("utf-8").replace(" ", "_")
+                            tutorial_data[domain][language][link]["next_chapter"] = links[page_index + 1].decode(
+                                "utf-8").replace(" ", "_")
 
 
 init_tutorials()
@@ -229,12 +243,14 @@ init_tutorials()
 def get_languages():
     return sorted(tutorial_data[get_host()].keys())
 
+
 def get_language_names():
     arr = []
     langs = get_languages()
     for lang in langs:
         arr.append(LANGUAGES.get(lang))
     return arr
+
 
 def get_host():
     if is_development_mode():
@@ -284,6 +300,7 @@ def error404():
 def favicon():
     return open(os.path.join(os.path.dirname(__file__), get_domain_data()["favicon"][1:]), "rb").read()
 
+
 @app.route("/ads.txt")
 def ads():
     return Response(render_template("ads.txt"), mimetype='text/plain')
@@ -293,6 +310,7 @@ def ads():
 @app.route("/<language>/", methods=["GET", "POST"])
 def default_index(language="en"):
     return index("Welcome", language)
+
 
 @app.route("/about")
 @app.route("/privacy")
@@ -306,6 +324,7 @@ def static_file():
         language_code="en",
     ))
 
+
 @app.route("/signin")
 def signin():
     email = request.args.get("email", None)
@@ -315,6 +334,7 @@ def signin():
     if user:
         session["user_id"] = str(user._id)
         return make_response(json.dumps({"status": "error", "error": "no_user"}))
+
 
 @app.route("/signup")
 def signup():
@@ -347,6 +367,7 @@ def progress(language):
         all_data=constants.DOMAIN_DATA,
     ))
 
+
 @app.route("/<title>", methods=["GET", "POST"])
 @app.route("/<language>/<title>", methods=["GET", "POST"])
 def index(title, language="en"):
@@ -359,8 +380,10 @@ def index(title, language="en"):
     domain_data["language_code"] = language
 
     if request.method == "GET":
-        title_suffix = "Learn %s - Free Interactive %s Tutorial" % (domain_data["language_uppercase"], domain_data["language_uppercase"])
-        html_title = "%s - %s" % (title.replace("_", " "), title_suffix) if title != "Welcome" else title_suffix
+        title_suffix = "Learn %s - Free Interactive %s Tutorial" % (
+            domain_data["language_uppercase"], domain_data["language_uppercase"])
+        html_title = "%s - %s" % (title.replace("_", " "),
+                                  title_suffix) if title != "Welcome" else title_suffix
 
         if not "uid" in session:
             session["uid"] = os.urandom(16).encode("hex")
@@ -368,13 +391,16 @@ def index(title, language="en"):
         uid = session["uid"]
 
         try:
-            site_links = tutorial_data[get_host()][language]["Welcome"]["links"]
+            site_links = tutorial_data[get_host(
+            )][language]["Welcome"]["links"]
         except Exception, e:
             site_links = []
-            logging.error("cant get site links for %s %s" % (get_host(), language))
+            logging.error("cant get site links for %s %s" %
+                          (get_host(), language))
 
         return make_response(render_template(
-            "index-python.html" if (language == "en" and domain_data["language"] == "python") else "index.html",
+            "index-python.html" if (
+                language == "en" and domain_data["language"] == "python") else "index.html",
             tutorial_page=tutorial != "Welcome",
             domain_data=domain_data,
             all_data=constants.DOMAIN_DATA,
@@ -396,7 +422,6 @@ def index(title, language="en"):
     if "output" in current_tutorial_data and current_tutorial_data["output"] == data["output"]:
         data["solved"] = True
 
-
     else:
         data["solved"] = False
 
@@ -406,6 +431,7 @@ def index(title, language="en"):
 @app.route("/robots.txt")
 def robots():
     return make_response("User-agent: *\nAllow: /")
+
 
 if __name__ == "__main__":
     logging.info("listening on port %s", args.port)
